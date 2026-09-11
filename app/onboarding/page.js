@@ -5,8 +5,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { setGuestProfile } from "../../lib/guestStore";
 
 const TARGETS = {
-  women: { water: 73, sugar: 25, fiber: 25 },
-  men: { water: 100, sugar: 36, fiber: 38 },
+  women: { water: 73, sugar: 25, fiber: 25, protein: 46 },
+  men: { water: 100, sugar: 36, fiber: 38, protein: 56 },
 };
 
 export default function Onboarding() {
@@ -28,6 +28,7 @@ export default function Onboarding() {
       water_target_oz: t.water,
       sugar_target_g: t.sugar,
       fiber_target_g: t.fiber,
+      protein_target_g: t.protein,
     };
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -74,6 +75,7 @@ export default function Onboarding() {
           <span>🍬 Sugar: {t.sugar}g</span>
           <span>🌾 Fiber: {t.fiber}g</span>
         </div>
+        <div style={{ fontSize: "15px", marginTop: "6px" }}>🍗 Protein: {t.protein}g</div>
       </div>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>

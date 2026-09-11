@@ -6,6 +6,7 @@ import { getGuestProfile, getGuestLogs } from "../../lib/guestStore";
 import MetricRing from "../../components/MetricRing";
 import LogModal from "../../components/LogModal";
 import SaveProgressBanner from "../../components/SaveProgressBanner";
+import trackers from "../../data/trackers.json";
 
 const startOfWeekISO = () => {
   const d = new Date();
@@ -59,8 +60,21 @@ export default function Dashboard() {
   const fiber = sum("fiber_g");
   const protein = sum("protein_g");
 
+  // Movement: today's ring fill comes from the tier's fillFraction, out of a "full day" of 1.0
+  const todayMovementLog = todayLogs.find((l) => l.tracker === "movement");
+  const todayTier = todayMovementLog
+    ? trackers.movement.tiers.find((t) => t.value === todayMovementLog.movement_tier)
+    : null;
+  const movementFill = todayTier ? todayTier.fillFraction : 0;
+  const movementDoubleCredit = todayTier?.doubleCredit;
+
   const movementDaysThisWeek = new Set(
     weekLogs.filter((l) => l.tracker === "movement" && l.movement_tier !== "none").map((l) => l.log_date)
+  ).size;
+
+  // Strength: simple weekly counter, not a daily ring
+  const strengthDaysThisWeek = new Set(
+    weekLogs.filter((l) => l.tracker === "strength").map((l) => l.log_date)
   ).size;
 
   const mealLogsThisWeek = weekLogs.filter((l) => l.tracker === "meal_source");
@@ -74,28 +88,70 @@ export default function Dashboard() {
 
       {!userId && <SaveProgressBanner />}
 
+      {/* Row 1 — building up: fiber, protein, water */}
       <div className="card" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "1rem" }}>
-        <button onClick={() => setActiveTracker("water")} style={{ border: "none", background: "none" }}>
-          <MetricRing label="Water" value={water} target={profile.water_target_oz} unit="oz" color="#00CFFF" icon="💧" />
-        </button>
-        <button onClick={() => setActiveTracker("sugar")} style={{ border: "none", background: "none" }}>
-          <MetricRing label="Sugar" value={sugar} target={profile.sugar_target_g} unit="g" color="#FF4F81" icon="🍬" />
-        </button>
         <button onClick={() => setActiveTracker("fiber")} style={{ border: "none", background: "none" }}>
-          <MetricRing label="Fiber" value={fiber} target={profile.fiber_target_g} unit="g" color="#FFC300" icon="🌾" />
+          <MetricRing label="Fiber" value={fiber} target={profile.fiber_target_g} unit="g" baseColor="#FFC300" icon="🌾" direction="goal" />
+        </button>
+        <button onClick={() => setActiveTracker("protein")} style={{ border: "none", background: "none" }}>
+          <MetricRing label="Protein" value={protein} target={profile.protein_target_g || 46} unit="g" baseColor="#6A0DAD" icon="🍗" direction="goal" />
+        </button>
+        <button onClick={() => setActiveTracker("water")} style={{ border: "none", background: "none" }}>
+          <MetricRing label="Water" value={water} target={profile.water_target_oz} unit="oz" baseColor="#00CFFF" icon="💧" direction="goal" />
         </button>
       </div>
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <p style={{ fontWeight: 600, marginBottom: "8px" }}>Protein today</p>
-        <p style={{ fontSize: "24px", fontWeight: 600, margin: 0 }}>{Math.round(protein)}g</p>
-        <button className="btn-secondary" style={{ marginTop: "8px" }} onClick={() => setActiveTracker("protein")}>+ Log protein</button>
+      {/* Row 2 — behavior and limits: sugar (bottom-left), movement, strength */}
+      <div className="card" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "1rem" }}>
+        <button onClick={() => setActiveTracker("sugar")} style={{ border: "none", background: "none" }}>
+          <MetricRing label="Sugar" value={sugar} target={profile.sugar_target_g} unit="g" baseColor="#FF4F81" icon="🍬" direction="limit" />
+        </button>
+
+        <button onClick={() => setActiveTracker("movement")} style={{ border: "none", background: "none", textAlign: "center" }}>
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#eee" strokeWidth="6" />
+            <circle
+              cx="32" cy="32" r="26" fill="none"
+              stroke="#639922" strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 26}
+              strokeDashoffset={2 * Math.PI * 26 * (1 - movementFill)}
+              transform="rotate(-90 32 32)"
+              style={{ transition: "stroke-dashoffset 0.4s ease" }}
+            />
+            <text x="32" y="37" textAnchor="middle" fontSize="18">🏃</text>
+          </svg>
+          <p style={{ fontSize: "12px", fontWeight: 600, margin: "4px 0 0" }}>
+            {todayTier ? todayTier.label : "Not logged"} {movementDoubleCredit && <span style={{ color: "var(--atm-purple)" }}>2x</span>}
+          </p>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>Movement</p>
+        </button>
+
+        <button onClick={() => setActiveTracker("strength")} style={{ border: "none", background: "none", textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "4px", height: "40px", alignItems: "center" }}>
+            {Array.from({ length: trackers.strength.weeklyTarget }).map((_, i) => (
+              <i
+                key={i}
+                className="ti ti-barbell"
+                style={{ fontSize: "22px", color: i < strengthDaysThisWeek ? "#6A0DAD" : "#ddd" }}
+                aria-hidden="true"
+              />
+            ))}
+            {strengthDaysThisWeek > trackers.strength.weeklyTarget && (
+              <span style={{ fontSize: "12px", color: "var(--atm-purple)", fontWeight: 600 }}>
+                +{strengthDaysThisWeek - trackers.strength.weeklyTarget}
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: "12px", fontWeight: 600, margin: "4px 0 0" }}>
+            {Math.min(strengthDaysThisWeek, trackers.strength.weeklyTarget)}/{trackers.strength.weeklyTarget} this week
+          </p>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>Strength</p>
+        </button>
       </div>
 
       <button className="card" style={{ width: "100%", textAlign: "left", marginBottom: "1rem", border: "none" }} onClick={() => setActiveTracker("movement")}>
-        <p style={{ fontWeight: 600, margin: 0 }}>Movement</p>
-        <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0" }}>
-          Active {movementDaysThisWeek} day{movementDaysThisWeek === 1 ? "" : "s"} this week — tap to log today
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>
+          Active {movementDaysThisWeek} day{movementDaysThisWeek === 1 ? "" : "s"} this week toward your 150 min goal
         </p>
       </button>
 
