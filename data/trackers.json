@@ -176,12 +176,15 @@
   },
   "movement": {
     "tiers": [
-      { "value": "none", "label": "None", "description": "No meaningful movement today" },
-      { "value": "light", "label": "Light", "description": "Casual/leisurely walk or light activity — any duration. Could comfortably talk or sing." },
-      { "value": "moderate", "label": "Moderate", "description": "Brisk walk (breathing harder, could still talk with effort — pick up the pace or add an incline) 30+ min, OR a strength session." },
-      { "value": "vigorous", "label": "Vigorous", "description": "Real workout — running, HIIT, heavy training. Hard to get a full sentence out." }
+      { "value": "none", "label": "None", "description": "No meaningful movement today", "fillFraction": 0 },
+      { "value": "light", "label": "Light", "description": "A short walk, roughly 10-15 minutes. Could comfortably talk or sing.", "fillFraction": 0.33 },
+      { "value": "moderate", "label": "Moderate", "description": "Brisk walk (breathing harder, could still talk with effort) 30+ min, OR a strength session.", "fillFraction": 1 },
+      { "value": "vigorous", "label": "Vigorous", "description": "Real workout — running, HIIT, heavy training. Hard to get a full sentence out.", "fillFraction": 1, "doubleCredit": true }
     ],
     "weeklyTargetMinutes": 150
+  },
+  "strength": {
+    "weeklyTarget": 2
   },
   "meal_source": {
     "options": [
