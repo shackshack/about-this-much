@@ -11,6 +11,7 @@ create table if not exists profiles (
   water_target_oz numeric default 73,
   sugar_target_g numeric default 25,
   fiber_target_g numeric default 25,
+  protein_target_g numeric default 46,
   newsletter_optin boolean default false,
   created_at timestamp with time zone default now()
 );
@@ -20,7 +21,7 @@ create table if not exists profiles (
 create table if not exists logs (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users on delete cascade not null,
-  tracker text check (tracker in ('water', 'sugar', 'fiber', 'protein', 'movement', 'artificial_sweetener', 'meal_source')) not null,
+  tracker text check (tracker in ('water', 'sugar', 'fiber', 'protein', 'movement', 'strength', 'artificial_sweetener', 'meal_source')) not null,
   category text,
   item_name text,
   unit text,
