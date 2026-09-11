@@ -1,0 +1,61 @@
+:root {
+  --atm-yellow: #ffc300;
+  --atm-pink: #ff4f81;
+  --atm-purple: #6a0dad;
+  --atm-cyan: #00cfff;
+  --atm-red: #b22222;
+  --bg: #faf9f6;
+  --card: #ffffff;
+  --border: #e8e6e0;
+  --text: #1c1c1e;
+  --text-muted: #6b6b6b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Lato", -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1, h2, h3 { font-family: "Cubano", "Lato", sans-serif; }
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+
+.btn-primary {
+  background: var(--atm-purple);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}

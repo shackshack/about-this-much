@@ -1,0 +1,192 @@
+{
+  "water": {
+    "containers": [
+      { "label": "Sip", "oz": 2 },
+      { "label": "Glass / cup", "oz": 8 },
+      { "label": "Small bottle", "oz": 16.9 },
+      { "label": "Large bottle", "oz": 20 },
+      { "label": "Hydro Flask, standard", "oz": 21 },
+      { "label": "Hydro Flask, large", "oz": 32 },
+      { "label": "Stanley Quencher", "oz": 40 },
+      { "label": "Nalgene", "oz": 32 },
+      { "label": "Gym shaker bottle", "oz": 24 },
+      { "label": "Gallon jug", "oz": 128 }
+    ],
+    "fractions": [1, 0.75, 0.5, 0.25]
+  },
+  "sugar": {
+    "Beverages": [
+      { "item": "Soda, 8oz glass", "unit": "8oz", "g": 26, "oz": 8 },
+      { "item": "Soda, 12oz can", "unit": "12oz", "g": 39, "oz": 12 },
+      { "item": "Soda, 20oz bottle", "unit": "20oz", "g": 65, "oz": 20 },
+      { "item": "Sweetened iced tea", "unit": "12oz", "g": 30, "oz": 12 },
+      { "item": "Lemonade", "unit": "12oz", "g": 30, "oz": 12 },
+      { "item": "Sports drink", "unit": "12oz", "g": 21, "oz": 12 },
+      { "item": "Energy drink", "unit": "12oz can", "g": 38, "oz": 12 },
+      { "item": "Flavored coffee drink", "unit": "12-16oz", "g": 40, "oz": 14 },
+      { "item": "Orange juice", "unit": "8oz glass", "g": 24, "oz": 8 },
+      { "item": "Apple juice", "unit": "8oz glass", "g": 26, "oz": 8 },
+      { "item": "Mixed drink (rum/whiskey + soda)", "unit": "standard glass", "g": 20, "oz": 8 },
+      { "item": "Classic cocktail (Manhattan, Old Fashioned)", "unit": "standard glass", "g": 5, "oz": 3 }
+    ],
+    "Sweeteners": [
+      { "item": "Sugar", "unit": "1 tsp", "g": 4 },
+      { "item": "Honey", "unit": "1 tsp", "g": 6 },
+      { "item": "Maple syrup", "unit": "1 tsp", "g": 5 },
+      { "item": "Pancake syrup", "unit": "1 tbsp", "g": 12 },
+      { "item": "Flavored coffee syrup", "unit": "1 pump", "g": 5 },
+      { "item": "Flavored creamer", "unit": "1 tbsp", "g": 5 },
+      { "item": "Artificial sweetener", "unit": "1 packet", "g": 0, "artificialSweetener": true }
+    ],
+    "Desserts": [
+      { "item": "Cookie, packaged", "unit": "1 cookie", "g": 8 },
+      { "item": "Cookie, bakery-style", "unit": "1 cookie", "g": 20 },
+      { "item": "Brownie", "unit": "1 brownie", "g": 15 },
+      { "item": "Cake, slice", "unit": "1 slice", "g": 25 },
+      { "item": "Cupcake", "unit": "1 cupcake", "g": 20 },
+      { "item": "Donut, glazed", "unit": "1 donut", "g": 12 },
+      { "item": "Ice cream, scoop", "unit": "1 scoop", "g": 14 },
+      { "item": "Candy bar", "unit": "1 bar", "g": 25 },
+      { "item": "Hard candy / lollipop", "unit": "1 piece", "g": 10 },
+      { "item": "Pie, slice", "unit": "1 slice", "g": 20 }
+    ],
+    "Sauces & Condiments": [
+      { "item": "Ketchup", "unit": "1 tbsp", "g": 4 },
+      { "item": "BBQ sauce", "unit": "1 tbsp", "g": 7 },
+      { "item": "Sweet chili sauce", "unit": "1 tbsp", "g": 4 },
+      { "item": "Teriyaki sauce", "unit": "1 tbsp", "g": 5 },
+      { "item": "Honey mustard", "unit": "1 tbsp", "g": 6 },
+      { "item": "Sweetened salad dressing", "unit": "1 tbsp", "g": 3 },
+      { "item": "Flavored mayo / aioli / dip", "unit": "1 tbsp", "g": 2 }
+    ],
+    "Meal Sauces": [
+      { "item": "Jarred tomato sauce", "unit": "1/2 cup", "g": 9 },
+      { "item": "Alfredo sauce", "unit": "1/2 cup", "g": 3 },
+      { "item": "Mac and cheese", "unit": "1 cup", "g": 6 }
+    ],
+    "Breakfast / Packaged": [
+      { "item": "Flavored yogurt", "unit": "1 cup", "g": 17 },
+      { "item": "Granola bar", "unit": "1 bar", "g": 10 },
+      { "item": "Sweetened cereal", "unit": "1 cup", "g": 11 },
+      { "item": "Muffin", "unit": "1 muffin", "g": 20 },
+      { "item": "Croissant", "unit": "1 croissant", "g": 6 },
+      { "item": "Scone", "unit": "1 scone", "g": 12 }
+    ],
+    "Dried Fruit": [
+      { "item": "Raisins, unsweetened", "unit": "1/4 cup", "g": 0, "fiberG": 1.5 },
+      { "item": "Dried apricots, unsweetened", "unit": "7 halves", "g": 0, "fiberG": 2 },
+      { "item": "Dried fruit, sweetened/candied", "unit": "1/4 cup", "g": 8, "fiberG": 1.5, "dualPurpose": true }
+    ]
+  },
+  "fiber": {
+    "Fruits": [
+      { "item": "Apple", "unit": "1 medium", "g": 4.4, "skinToggle": true, "peeledG": 2.4 },
+      { "item": "Banana", "unit": "1 medium", "g": 3 },
+      { "item": "Orange", "unit": "1 medium", "g": 3 },
+      { "item": "Pear", "unit": "1 medium", "g": 5.5, "skinToggle": true, "peeledG": 3 },
+      { "item": "Peach", "unit": "1 large", "g": 3, "skinToggle": true, "peeledG": 1.5 },
+      { "item": "Kiwi", "unit": "1 medium", "g": 4, "skinToggle": true, "peeledG": 2.1 },
+      { "item": "Berries", "unit": "1 cup", "g": 4 },
+      { "item": "Avocado", "unit": "1 medium", "g": 10 },
+      { "item": "Mango", "unit": "1 cup", "g": 3 }
+    ],
+    "Vegetables": [
+      { "item": "Broccoli, cooked", "unit": "1 cup", "g": 5 },
+      { "item": "Carrot", "unit": "1 medium", "g": 2 },
+      { "item": "Spinach / leafy greens, cooked", "unit": "1 cup", "g": 4 },
+      { "item": "Potato, baked", "unit": "1 medium", "g": 4, "skinToggle": true, "peeledG": 2 },
+      { "item": "Sweet potato, baked", "unit": "1 medium", "g": 4, "skinToggle": true, "peeledG": 3 },
+      { "item": "Corn", "unit": "1 cup", "g": 4 },
+      { "item": "Bell pepper", "unit": "1 cup", "g": 2.5 },
+      { "item": "Brussels sprouts, cooked", "unit": "1 cup", "g": 4 },
+      { "item": "Eggplant, cooked", "unit": "1 cup", "g": 2.5, "skinToggle": true, "peeledG": 2 },
+      { "item": "Tomato", "unit": "1 medium", "g": 1.5, "skinToggle": true, "peeledG": 1.4 }
+    ],
+    "Beans, Lentils & Soy": [
+      { "item": "Black beans, cooked", "unit": "1 cup", "g": 15, "proteinG": 15, "completeProtein": false },
+      { "item": "Chickpeas, cooked", "unit": "1 cup", "g": 12, "proteinG": 12, "completeProtein": false },
+      { "item": "Lentils, cooked", "unit": "1 cup", "g": 15.5, "proteinG": 15.5, "completeProtein": false },
+      { "item": "Kidney beans, cooked", "unit": "1 cup", "g": 11, "proteinG": 11, "completeProtein": false },
+      { "item": "Tofu", "unit": "1/2 cup", "g": 2, "proteinG": 2, "completeProtein": true },
+      { "item": "Edamame", "unit": "1/2 cup", "g": 4, "proteinG": 4, "completeProtein": true }
+    ],
+    "Nuts & Seeds": [
+      { "item": "Almonds", "unit": "1oz", "g": 3.7 },
+      { "item": "Walnuts", "unit": "1oz", "g": 2 },
+      { "item": "Pecans", "unit": "1oz", "g": 3 },
+      { "item": "Pistachios", "unit": "1oz", "g": 3 },
+      { "item": "Hazelnuts", "unit": "1oz", "g": 2.8 },
+      { "item": "Peanuts", "unit": "1oz", "g": 2.5 },
+      { "item": "Cashews", "unit": "1oz", "g": 1 },
+      { "item": "Chia seeds", "unit": "1oz", "g": 10 },
+      { "item": "Flaxseed, ground", "unit": "1oz", "g": 8 },
+      { "item": "Pumpkin seeds", "unit": "1oz", "g": 5 },
+      { "item": "Sunflower seeds", "unit": "1oz", "g": 3 }
+    ],
+    "Breads, Rice & Pasta": [
+      { "item": "Bread, white", "unit": "1 slice", "g": 0.8 },
+      { "item": "Bread, whole wheat", "unit": "1 slice", "g": 2.3 },
+      { "item": "Rice, white, cooked", "unit": "1 cup", "g": 0.6 },
+      { "item": "Rice, brown, cooked", "unit": "1 cup", "g": 3.5 },
+      { "item": "Pasta, regular, cooked", "unit": "1 cup", "g": 2 },
+      { "item": "Pasta, whole wheat, cooked", "unit": "1 cup", "g": 6.5 },
+      { "item": "Pasta, bean-based, cooked", "unit": "1 cup", "g": 8 },
+      { "item": "Oatmeal, cooked", "unit": "1 cup", "g": 4 },
+      { "item": "Quinoa, cooked", "unit": "1 cup", "g": 5, "proteinG": 8, "completeProtein": true },
+      { "item": "Amaranth, cooked", "unit": "1 cup", "g": 5, "proteinG": 9, "completeProtein": true },
+      { "item": "Buckwheat, cooked", "unit": "1 cup", "g": 4, "proteinG": 6, "completeProtein": true }
+    ],
+    "Supplements": [
+      { "item": "Psyllium husk", "unit": "1 tbsp", "g": 4 }
+    ],
+    "Packaged / Fortified": [
+      { "item": "High-fiber cereal", "unit": "3/4 cup", "g": 5 },
+      { "item": "Fiber granola bar", "unit": "1 bar", "g": 5 }
+    ]
+  },
+  "protein": {
+    "Eggs": [{ "item": "Egg", "unit": "1 large", "g": 6, "complete": true }],
+    "Poultry": [
+      { "item": "Chicken breast, cooked", "unit": "3oz", "g": 26, "complete": true },
+      { "item": "Turkey, cooked", "unit": "3oz", "g": 25, "complete": true }
+    ],
+    "Red Meat": [
+      { "item": "Beef, cooked", "unit": "3oz", "g": 24, "complete": true },
+      { "item": "Pork, cooked", "unit": "3oz", "g": 22, "complete": true },
+      { "item": "Lamb, cooked", "unit": "3oz", "g": 23, "complete": true }
+    ],
+    "Seafood": [
+      { "item": "Fish", "unit": "3oz", "g": 22, "complete": true },
+      { "item": "Shellfish, crustaceans", "unit": "3oz", "g": 18, "complete": true },
+      { "item": "Shellfish, mollusks", "unit": "3oz", "g": 10, "complete": true }
+    ],
+    "Dairy": [
+      { "item": "Milk", "unit": "1 cup", "g": 8, "complete": true },
+      { "item": "Yogurt, plain (regular)", "unit": "1 cup", "g": 8, "complete": true },
+      { "item": "Yogurt, plain (Greek)", "unit": "1 cup", "g": 15, "complete": true },
+      { "item": "Cottage cheese", "unit": "1/2 cup", "g": 14, "complete": true },
+      { "item": "Cheese", "unit": "1oz", "g": 7, "complete": true }
+    ],
+    "Protein Supplements": [
+      { "item": "Collagen peptides", "unit": "1 scoop", "g": 10, "complete": false, "pairing": "Missing tryptophan — pair with eggs, oats, bananas, or pumpkin seeds" },
+      { "item": "Gelatin", "unit": "1 tbsp", "g": 6, "complete": false, "pairing": "Missing tryptophan — pair with eggs, oats, bananas, or pumpkin seeds" },
+      { "item": "Nutritional yeast", "unit": "2 tbsp", "g": 8, "complete": true },
+      { "item": "Spirulina", "unit": "1 tbsp", "g": 4, "complete": true }
+    ]
+  },
+  "movement": {
+    "tiers": [
+      { "value": "none", "label": "None", "description": "No meaningful movement today" },
+      { "value": "light", "label": "Light", "description": "Casual/leisurely walk or light activity — any duration. Could comfortably talk or sing." },
+      { "value": "moderate", "label": "Moderate", "description": "Brisk walk (breathing harder, could still talk with effort — pick up the pace or add an incline) 30+ min, OR a strength session." },
+      { "value": "vigorous", "label": "Vigorous", "description": "Real workout — running, HIIT, heavy training. Hard to get a full sentence out." }
+    ],
+    "weeklyTargetMinutes": 150
+  },
+  "meal_source": {
+    "options": [
+      { "value": "home_cooked", "label": "Home cooked" },
+      { "value": "eaten_out", "label": "Eaten out" }
+    ]
+  }
+}
