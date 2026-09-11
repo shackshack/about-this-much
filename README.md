@@ -49,6 +49,31 @@ The free tier pauses a project after 7 days with no activity. As long as you or 
 opening the app at least that often during this testing phase, it'll stay active. If it pauses,
 you can resume it from the Supabase dashboard with one click.
 
+## Updating the app after this point
+
+Whenever the code changes (like this batch of design fixes), the workflow is:
+
+1. Download the updated project files.
+2. Go to your GitHub repo → **Add file** → **Upload files** (same screen as your original upload).
+3. Drag in the changed files, keeping the same folder structure/paths as before. GitHub will
+   recognize files at the same path as updates, not duplicates.
+4. Commit the upload.
+5. That's it — Vercel is watching this repo and will automatically rebuild and redeploy within
+   a minute or two. No action needed on Vercel's side.
+
+**If a schema migration file is included** (like `supabase/migration_002_protein_strength.sql`
+in this batch), run that in Supabase's SQL Editor as a new snippet too — the app's code and the
+database structure need to match, and only running the code update isn't enough on its own.
+
+## What changed in this batch
+- Protein and Movement now use the same ring treatment as Water/Sugar/Fiber, for visual consistency.
+- Movement's ring fill is based on intensity tier (light = 1/3, moderate = full, vigorous = full + 2x credit badge), not raw minutes.
+- Added a separate Strength tracker (2x/week target, dumbbell icons) — distinct from cardio Movement.
+- Dashboard reordered: Row 1 = Fiber, Protein, Water (building up). Row 2 = Sugar, Movement, Strength (behavior/limits).
+- Ring numbers now shift color and size as they approach target — green for "goal" metrics (water/fiber/protein/movement), red for the one "limit" metric (sugar), which stays neutral until nearing/passing 100%.
+- Added `protein_target_g` to profiles (default 46g women / 56g men, set at onboarding).
+- Run `supabase/migration_002_protein_strength.sql` once if updating an already-live database.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.
