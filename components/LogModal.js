@@ -86,10 +86,27 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
             style={{ width: "100%", textAlign: "left", marginBottom: "8px", border: "none" }}
             onClick={() => insertLog({ movement_tier: t.value })}
           >
-            <p style={{ fontWeight: 600, margin: 0 }}>{t.label}</p>
+            <p style={{ fontWeight: 600, margin: 0 }}>
+              {t.label} {t.doubleCredit && <span style={{ fontSize: "11px", color: "var(--atm-purple)" }}>2x credit</span>}
+            </p>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0" }}>{t.description}</p>
           </button>
         ))}
+      </Sheet>
+    );
+  }
+
+  // ---- STRENGTH (separate weekly counter, not a daily ring) ----
+  if (tracker === "strength") {
+    return (
+      <Sheet onClose={onClose} title="Log a strength session">
+        <button
+          className="btn-primary"
+          style={{ width: "100%" }}
+          onClick={() => insertLog({ item_name: "Strength session" })}
+        >
+          Log today's strength session
+        </button>
       </Sheet>
     );
   }
