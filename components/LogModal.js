@@ -18,15 +18,13 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   const [todayValue, setTodayValue] = useState(null); // for one-per-day trackers (movement, meal_source)
 
   useEffect(() => {
-    if (userId) {
-      if (!userId) return;
-      supabase
-        .from("saved_quick_adds")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("tracker", tracker)
-        .then(({ data }) => setSavedQuickAdds(data || []));
-    }
+    if (!userId) return; // saved quick-adds are an account feature for now
+    supabase
+      .from("saved_quick_adds")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("tracker", tracker)
+      .then(({ data }) => setSavedQuickAdds(data || []));
   }, [tracker, userId]);
 
   // Load today's existing value for one-per-day trackers, so the current pick is highlighted.
