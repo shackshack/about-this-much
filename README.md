@@ -143,6 +143,28 @@ database structure need to match, and only running the code update isn't enough 
   of showing the collapsed "Save your progress" teaser that needed an extra tap first.
 - No schema migration needed — this batch is entirely application code and UI behavior.
 
+## Batch 6 — cleanup pass on logging clarity and layout
+- Removed the Small/Typical/Large size-picker entirely. It didn't hold up in practice (eggs,
+  apples, etc. don't need a size decision most people don't actually make) — everything in the
+  category→item flow is now a plain quantity picker (1/2/3), labeled as a bold number plus
+  "{unit} each" underneath, not the confusing "1 × 1 brownie" wording from before.
+- Fixed: every popup (logging, settings, day snapshot) now has a fixed max-width (440px) and is
+  centered, instead of stretching to fill the full browser window on desktop. This is what was
+  causing buttons to look oversized/unprofessional at full screen — the app is designed around
+  a phone-width layout and now actually behaves like one regardless of window size.
+- Fixed: every option list (categories, items, quantities, water) is now a single vertical list,
+  top to bottom — removed the 2-column wrapping that was turning small option sets (like the
+  4 water-fraction choices) into a confusing "four quadrants" layout with unclear reading order.
+- Changed: tapping a water container now logs it as full immediately, one tap. A "Not full? Log
+  a partial amount" link expands the fraction options inline only when actually needed, instead
+  of a mandatory second screen every time.
+- Changed: Strength is back to one log per day, a plain toggle (log / tap again to undo) — no
+  count badge, no "×2." Movement stays additive (multiple real sessions genuinely happened and
+  should each count), but Strength doesn't work the same way; the goal there is a consistent
+  session every few days, not volume in a single day, so stacking several in one sitting isn't
+  something the UI should encourage or even track distinctly.
+- No schema migration needed — this batch is entirely application code and UI/layout.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.

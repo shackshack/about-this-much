@@ -52,8 +52,8 @@ export default function SettingsPanel({ userId, profile, onClose, onUpdated }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", zIndex: 60 }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: "1.25rem", width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 60 }} onClick={onClose}>
+      <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: "1.25rem", width: "100%", maxWidth: "440px", maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
           <h3 style={{ margin: 0 }}>Settings</h3>
           <button onClick={onClose} className="btn-secondary" style={{ padding: "4px 12px" }}>Close</button>
