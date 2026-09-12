@@ -72,12 +72,13 @@ export default function Dashboard() {
   const fiber = sum("fiber_g");
   const protein = sum("protein_g");
 
-  const todayMovementLog = todayLogs.find((l) => l.tracker === "movement");
-  const todayTier = todayMovementLog
-    ? trackers.movement.tiers.find((t) => t.value === todayMovementLog.movement_tier)
-    : null;
-  const movementFill = todayTier ? todayTier.fillFraction : 0;
-  const movementDoubleCredit = todayTier?.doubleCredit;
+  const todayMovementLogs = todayLogs.filter((l) => l.tracker === "movement");
+  const movementFillSum = todayMovementLogs.reduce((a, l) => {
+    const tier = trackers.movement.tiers.find((t) => t.value === l.movement_tier);
+    return a + (tier ? tier.fillFraction : 0);
+  }, 0);
+  const movementHasVigorous = todayMovementLogs.some((l) => l.movement_tier === "vigorous");
+  const movementPct = Math.round(movementFillSum * 100);
 
   // Rolling 7-day window, not calendar week — matches the timeline exactly.
   const movementDaysThisWindow = new Set(
@@ -132,22 +133,8 @@ export default function Dashboard() {
         </button>
 
         <button onClick={() => setActiveTracker("movement")} style={{ border: "none", background: "none", textAlign: "center", minHeight: "108px" }}>
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#eee" strokeWidth="6" />
-            <circle
-              cx="32" cy="32" r="26" fill="none"
-              stroke="#639922" strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 26}
-              strokeDashoffset={2 * Math.PI * 26 * (1 - movementFill)}
-              transform="rotate(-90 32 32)"
-              style={{ transition: "stroke-dashoffset 0.4s ease" }}
-            />
-            <text x="32" y="37" textAnchor="middle" fontSize="18">🏃</text>
-          </svg>
-          <p style={{ fontSize: "12px", fontWeight: 600, margin: "4px 0 0" }}>
-            {todayTier ? todayTier.label : "Not logged"} {movementDoubleCredit && <span style={{ color: "var(--atm-purple)" }}>2x</span>}
-          </p>
-          <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>Movement</p>
+          <MetricRing label="Movement" value={movementPct} target={100} unit="%" baseColor="#639922" icon="🏃" direction="goal" />
+          {movementHasVigorous && <p style={{ fontSize: "11px", color: "var(--atm-purple)", fontWeight: 700, margin: "2px 0 0" }}>2x credit today</p>}
         </button>
 
         <button onClick={() => setActiveTracker("strength")} style={{ border: "none", background: "none", textAlign: "center", minHeight: "108px" }}>

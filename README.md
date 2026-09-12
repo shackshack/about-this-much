@@ -126,6 +126,23 @@ database structure need to match, and only running the code update isn't enough 
   correctly — it wasn't safe to add this without that change.
 - No schema migration needed — this batch only changes application code and how dates are set on new rows.
 
+## Batch 5 — over-goal badge, additive movement, inline undo, settings-to-email flow
+- Added: every ring now shows a small "+Xg" badge (green for goal metrics, red "+Xg over" for
+  sugar) whenever a value passes its target. Applies everywhere `MetricRing` is used.
+- Fixed: Movement was built as a single daily pick, which was wrong — it now works like every
+  other tracker, additive. A light walk this morning and a moderate one later both log and both
+  count. The Movement ring is now driven by the shared `MetricRing` component too (value = sum
+  of today's session fill %, target = 100%), which is also what gives it the same over-goal
+  badge and a "2x credit today" note if a vigorous session was logged.
+- Added: inline undo. Every loggable option (water fractions, item sizes/quantities, movement
+  tiers, strength) now shows a purple outline and a count once you've logged it, with a small
+  "−" next to it that removes just one instance — no need to scroll to a separate list to fix
+  a mistake. The full list of today's entries for sugar/fiber/protein still shows above the
+  category picker too, since a mixed bag of different items benefits from seeing them all at once.
+- Fixed: Settings' "Save changes" now opens the email sign-in form directly for guests, instead
+  of showing the collapsed "Save your progress" teaser that needed an extra tap first.
+- No schema migration needed — this batch is entirely application code and UI behavior.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.

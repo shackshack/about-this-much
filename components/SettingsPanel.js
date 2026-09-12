@@ -107,7 +107,7 @@ export default function SettingsPanel({ userId, profile, onClose, onUpdated }) {
 
         <button className="btn-primary" style={{ width: "100%", marginBottom: "1rem" }} onClick={save}>Save changes</button>
 
-        {!userId && justSaved && <SaveProgressBanner />}
+        {!userId && justSaved && <SaveProgressBanner startOpen />}
 
         <button className="btn-secondary" style={{ width: "100%", marginBottom: "8px", color: "var(--atm-red)" }} onClick={resetData}>
           Reset all logged data

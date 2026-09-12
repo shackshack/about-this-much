@@ -18,6 +18,9 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
     numberColor = mixColor("#1c1c1e", "#c0392b", Math.min(dangerT, 1));
   }
 
+  const overAmount = Math.round((value - target) * 10) / 10;
+  const isOver = overAmount > 0;
+
   return (
     <div style={{ textAlign: "center", minHeight: "108px" }}>
       <svg width="64" height="64" viewBox="0 0 64 64">
@@ -38,6 +41,11 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
       }}>
         {Math.round(value * 10) / 10}/{target}{unit}
       </p>
+      {isOver && (
+        <p style={{ fontSize: "10px", fontWeight: 700, margin: "1px 0 0", color: direction === "goal" ? "#1a9e5c" : "#c0392b" }}>
+          {direction === "goal" ? `+${overAmount}${unit}` : `+${overAmount}${unit} over`}
+        </p>
+      )}
       <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>{label}</p>
     </div>
   );

@@ -9,8 +9,12 @@ export default function DaySnapshot({ dateStr, logs, profile, userId, onClose, e
 
   const sum = (field) => logs.reduce((a, l) => a + (l[field] || 0), 0);
 
-  const movementLog = logs.find((l) => l.tracker === "movement");
-  const tier = movementLog ? trackers.movement.tiers.find((t) => t.value === movementLog.movement_tier) : null;
+  const movementLogsForDay = logs.filter((l) => l.tracker === "movement");
+  const movementFillSum = movementLogsForDay.reduce((a, l) => {
+    const t = trackers.movement.tiers.find((t) => t.value === l.movement_tier);
+    return a + (t ? t.fillFraction : 0);
+  }, 0);
+  const movementHasVigorous = movementLogsForDay.some((l) => l.movement_tier === "vigorous");
   const strengthLog = logs.find((l) => l.tracker === "strength");
   const mealLog = logs.find((l) => l.tracker === "meal_source");
 
@@ -50,7 +54,10 @@ export default function DaySnapshot({ dateStr, logs, profile, userId, onClose, e
               {wrap("movement", (
                 <div style={{ textAlign: "center" }}>
                   <p style={{ fontSize: "26px", margin: "0 0 4px" }}>🏃</p>
-                  <p style={{ fontSize: "12px", fontWeight: 600, margin: 0 }}>{tier ? tier.label : "Not logged"}</p>
+                  <p style={{ fontSize: "12px", fontWeight: 600, margin: 0 }}>
+                    {movementLogsForDay.length === 0 ? "Not logged" : `${Math.round(movementFillSum * 100)}%`}
+                    {movementHasVigorous && <span style={{ color: "var(--atm-purple)" }}> 2x</span>}
+                  </p>
                   <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>Movement</p>
                 </div>
               ))}

@@ -24,8 +24,8 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
   const [customGrams, setCustomGrams] = useState("");
   const [saveLabel, setSaveLabel] = useState("");
   const [savedQuickAdds, setSavedQuickAdds] = useState([]);
-  const [todayValue, setTodayValue] = useState(null); // for one-per-day trackers (movement, meal_source)
-  const [dayEntries, setDayEntries] = useState([]); // this tracker's entries for dateStr, for inline remove
+  const [mealTodayValue, setMealTodayValue] = useState(null); // meal_source is still one-per-day
+  const [dayEntries, setDayEntries] = useState([]); // this tracker's entries for dateStr
 
   const refreshDayEntries = async () => {
     if (userId) {
@@ -45,16 +45,16 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
   useEffect(() => { refreshDayEntries(); }, [tracker, userId, dateStr]);
 
   useEffect(() => {
-    if (tracker !== "movement" && tracker !== "meal_source") return;
+    if (tracker !== "meal_source") return;
     if (userId) {
       supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", dateStr).maybeSingle()
-        .then(({ data }) => setTodayValue(data));
+        .then(({ data }) => setMealTodayValue(data));
     } else {
-      setTodayValue(getGuestLogs().find((l) => l.tracker === tracker && l.log_date === dateStr) || null);
+      setMealTodayValue(getGuestLogs().find((l) => l.tracker === tracker && l.log_date === dateStr) || null);
     }
   }, [tracker, userId, dateStr]);
 
-  // Logs an entry and KEEPS the modal open, so tapping the same item again stacks another one.
+  // Logs an entry and keeps the modal open — tapping the same option again stacks another one.
   const logEntry = async (row) => {
     if (userId) {
       await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...row });
@@ -73,24 +73,31 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
     }
     onLogged();
     refreshDayEntries();
-    if (tracker === "movement" || tracker === "meal_source") setTodayValue(null);
   };
 
-  // For movement/meal_source: replace this day's entry, or clear it if tapping the same value again.
-  const upsertDaily = async (fields, matchField) => {
+  // Removes the single most recent entry matching a predicate — "undo one" for a specific button.
+  const undoOne = (matchFn) => {
+    const matches = dayEntries.filter(matchFn);
+    if (matches.length === 0) return;
+    const mostRecent = matches.reduce((a, b) => (a.logged_at > b.logged_at ? a : b));
+    removeEntry(mostRecent);
+  };
+
+  // For meal_source only: replace this day's entry, or clear it if tapping the same value again.
+  const upsertMealSource = async (fields) => {
     if (userId) {
-      const { data: existing } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", dateStr).maybeSingle();
+      const { data: existing } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", "meal_source").eq("log_date", dateStr).maybeSingle();
       if (existing) {
-        if (existing[matchField] === fields[matchField]) {
+        if (existing.meal_source === fields.meal_source) {
           await supabase.from("logs").delete().eq("id", existing.id);
         } else {
           await supabase.from("logs").update(fields).eq("id", existing.id);
         }
       } else {
-        await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...fields });
+        await supabase.from("logs").insert({ user_id: userId, tracker: "meal_source", log_date: dateStr, ...fields });
       }
     } else {
-      upsertGuestDailyLog(tracker, fields, matchField, dateStr);
+      upsertGuestDailyLog("meal_source", fields, "meal_source", dateStr);
     }
     onLogged();
     onClose();
@@ -99,6 +106,7 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
   const DayEntriesList = ({ describe }) =>
     dayEntries.length > 0 && (
       <div style={{ marginBottom: "12px" }}>
+        <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "0 0 4px" }}>Logged so far today:</p>
         {dayEntries.map((l) => (
           <div key={l.id} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", marginBottom: "4px" }}>
             <span style={{ fontSize: "12px" }}>{describe(l)}</span>
@@ -112,7 +120,6 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
   if (tracker === "water") {
     return (
       <Sheet onClose={onClose} title="Log water">
-        <DayEntriesList describe={(l) => `${l.item_name}${l.quantity !== 1 ? ` (${Math.round(l.quantity * 100)}%)` : ""} — ${l.water_oz}oz`} />
         {!category ? (
           <Grid>
             {trackers.water.containers.map((c) => (
@@ -123,49 +130,55 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
           </Grid>
         ) : (
           <>
-            <p style={{ fontWeight: 600, marginBottom: "10px" }}>{category.label}, how much?</p>
-            <Grid>
-              {trackers.water.fractions.map((f) => (
-                <OptionBtn
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <p style={{ fontWeight: 600, margin: 0 }}>{category.label}, how much?</p>
+              <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setCategory(null)}>Back</button>
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again to add another.</p>
+            {trackers.water.fractions.map((f) => {
+              const matchFn = (l) => l.item_name === category.label && l.quantity === f;
+              const count = dayEntries.filter(matchFn).length;
+              return (
+                <TapButton
                   key={f}
-                  onClick={() => {
-                    logEntry({
-                      category: "container", item_name: category.label, unit: `${category.oz}oz`,
-                      quantity: f, water_oz: Math.round(category.oz * f * 10) / 10,
-                    });
-                    setCategory(null);
-                  }}
+                  count={count}
+                  onTap={() => logEntry({
+                    category: "container", item_name: category.label, unit: `${category.oz}oz`,
+                    quantity: f, water_oz: Math.round(category.oz * f * 10) / 10,
+                  })}
+                  onUndo={() => undoOne(matchFn)}
                 >
-                  {f === 1 ? "Full" : `${f * 100}%`}
-                </OptionBtn>
-              ))}
-            </Grid>
+                  {f === 1 ? "Full" : `${f * 100}%`} <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>({Math.round(category.oz * f)}oz)</span>
+                </TapButton>
+              );
+            })}
           </>
         )}
       </Sheet>
     );
   }
 
-  // ---- MOVEMENT ----
+  // ---- MOVEMENT (additive — log as many sessions as actually happened) ----
   if (tracker === "movement") {
     return (
       <Sheet onClose={onClose} title="Log movement">
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
-        {trackers.movement.tiers.map((t) => {
-          const isSelected = todayValue?.movement_tier === t.value;
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Log each session — a light walk this morning and a moderate one later both count.</p>
+        {trackers.movement.tiers.filter((t) => t.value !== "none").map((t) => {
+          const matchFn = (l) => l.movement_tier === t.value;
+          const count = dayEntries.filter(matchFn).length;
           return (
-            <button
+            <TapButton
               key={t.value}
-              className="card"
-              style={{ width: "100%", textAlign: "left", marginBottom: "8px", border: isSelected ? "2px solid var(--atm-purple)" : "0.5px solid var(--border)" }}
-              onClick={() => upsertDaily({ movement_tier: t.value }, "movement_tier")}
+              count={count}
+              stacked
+              onTap={() => logEntry({ movement_tier: t.value })}
+              onUndo={() => undoOne(matchFn)}
             >
               <p style={{ fontWeight: 600, margin: 0 }}>
                 {t.label} {t.doubleCredit && <span style={{ fontSize: "11px", color: "var(--atm-purple)" }}>2x credit</span>}
-                {isSelected && <span style={{ float: "right", color: "var(--atm-purple)" }}>✓</span>}
               </p>
               <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0" }}>{t.description}</p>
-            </button>
+            </TapButton>
           );
         })}
       </Sheet>
@@ -174,28 +187,29 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
 
   // ---- STRENGTH (separate weekly counter, not a daily ring) ----
   if (tracker === "strength") {
+    const count = dayEntries.length;
     return (
       <Sheet onClose={onClose} title="Log a strength session">
-        <DayEntriesList describe={() => "Strength session"} />
-        <button className="btn-primary" style={{ width: "100%" }} onClick={() => logEntry({ item_name: "Strength session" })}>
-          Log a strength session for this day
-        </button>
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again if you did more than one session today.</p>
+        <TapButton count={count} stacked onTap={() => logEntry({ item_name: "Strength session" })} onUndo={() => undoOne(() => true)}>
+          <p style={{ fontWeight: 600, margin: 0 }}>Log a strength session</p>
+        </TapButton>
       </Sheet>
     );
   }
 
-  // ---- MEAL SOURCE ----
+  // ---- MEAL SOURCE (still one answer per day — this one genuinely is a single daily choice) ----
   if (tracker === "meal_source") {
     return (
       <Sheet onClose={onClose} title="This day, mostly...">
         <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
         <Grid>
           {trackers.meal_source.options.map((o) => {
-            const isSelected = todayValue?.meal_source === o.value;
+            const isSelected = mealTodayValue?.meal_source === o.value;
             return (
               <button
                 key={o.value}
-                onClick={() => upsertDaily({ meal_source: o.value }, "meal_source")}
+                onClick={() => upsertMealSource({ meal_source: o.value })}
                 className="btn-secondary"
                 style={{ textAlign: "left", border: isSelected ? "2px solid var(--atm-purple)" : "0.5px solid var(--border)" }}
               >
@@ -245,8 +259,6 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
 
   return (
     <Sheet onClose={onClose} title={`Log ${tracker}`}>
-      <DayEntriesList describe={describeItemLog} />
-
       {savedQuickAdds.length > 0 && !category && (
         <>
           <p style={{ fontWeight: 600, marginBottom: "8px" }}>Your saved items</p>
@@ -269,6 +281,7 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
 
       {!category ? (
         <>
+          <DayEntriesList describe={describeItemLog} />
           <p style={{ fontWeight: 600, margin: "12px 0 8px" }}>Categories</p>
           <Grid>
             {categories.map((c) => (
@@ -325,13 +338,15 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
             <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setItem(null)}>Back</button>
           </div>
           <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again to add another.</p>
-          <Grid>
-            {SIZES.map((s) => (
-              <OptionBtn key={s.label} onClick={() => logEntry(buildRow(item, s.scalar))}>
+          {SIZES.map((s) => {
+            const matchFn = (l) => l.item_name === item.item && l.quantity === s.scalar;
+            const count = dayEntries.filter(matchFn).length;
+            return (
+              <TapButton key={s.label} count={count} onTap={() => logEntry(buildRow(item, s.scalar))} onUndo={() => undoOne(matchFn)}>
                 {s.label}
-              </OptionBtn>
-            ))}
-          </Grid>
+              </TapButton>
+            );
+          })}
         </>
       ) : (
         <>
@@ -340,14 +355,16 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
             <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setItem(null)}>Back</button>
           </div>
           <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again to add another.</p>
-          <Grid>
-            {QUANTITIES.map((q) => (
-              <OptionBtn key={q} onClick={() => logEntry(buildRow(item, q))}>
+          {QUANTITIES.map((q) => {
+            const matchFn = (l) => l.item_name === item.item && l.quantity === q;
+            const count = dayEntries.filter(matchFn).length;
+            return (
+              <TapButton key={q} count={count} onTap={() => logEntry(buildRow(item, q))} onUndo={() => undoOne(matchFn)}>
                 <span style={{ fontWeight: 700 }}>{q}</span>{" "}
                 <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>× {item.unit}</span>
-              </OptionBtn>
-            ))}
-          </Grid>
+              </TapButton>
+            );
+          })}
         </>
       )}
     </Sheet>
@@ -383,5 +400,42 @@ function OptionBtn({ children, onClick }) {
     <button onClick={onClick} className="btn-secondary" style={{ textAlign: "left" }}>
       {children}
     </button>
+  );
+}
+
+// The core "log + undo in one place" control: main button logs a new entry and shows a purple
+// outline once count > 0; a small "−" appears next to it, tapping it removes just one instance,
+// not the whole thing. `stacked` uses full-width card styling (movement/strength), otherwise
+// it renders inline in the two-column grid used by sizes/quantities/water fractions.
+function TapButton({ count, onTap, onUndo, children, stacked }) {
+  const logged = count > 0;
+  return (
+    <div style={
+      stacked
+        ? { display: "flex", alignItems: "stretch", gap: "6px", marginBottom: "8px" }
+        : { display: "inline-flex", alignItems: "stretch", gap: "6px", marginBottom: "8px", width: "calc(50% - 4px)" }
+    }>
+      <button
+        onClick={onTap}
+        className={stacked ? "card" : "btn-secondary"}
+        style={{
+          flex: 1, textAlign: "left",
+          border: logged ? "2px solid var(--atm-purple)" : (stacked ? "0.5px solid var(--border)" : "1px solid var(--border)"),
+        }}
+      >
+        {children}
+        {logged && <span style={{ marginLeft: "6px", fontSize: "11px", color: "var(--atm-purple)", fontWeight: 700 }}>×{count}</span>}
+      </button>
+      {logged && (
+        <button
+          onClick={onUndo}
+          className="btn-secondary"
+          style={{ padding: "0 12px", fontSize: "16px", lineHeight: 1, fontWeight: 700 }}
+          aria-label="Undo one"
+        >
+          −
+        </button>
+      )}
+    </div>
   );
 }

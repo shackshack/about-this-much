@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function SaveProgressBanner() {
-  const [open, setOpen] = useState(false);
+export default function SaveProgressBanner({ startOpen = false }) {
+  const [open, setOpen] = useState(startOpen);
   const [email, setEmail] = useState("");
   const [newsletter, setNewsletter] = useState(false);
   const [sent, setSent] = useState(false);
