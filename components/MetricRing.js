@@ -7,25 +7,19 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
   const offset = circumference * (1 - pct);
 
   let numberColor = "var(--text)";
-  let fontSize = 12;
 
   if (direction === "goal") {
-    // neutral -> green as it approaches/hits the target
     if (pct > 0.5) {
-      const t = (pct - 0.5) / 0.5; // 0 at 50%, 1 at 100%
+      const t = (pct - 0.5) / 0.5;
       numberColor = mixColor("#1c1c1e", "#1a9e5c", t);
-      fontSize = 12 + t * 2;
     }
   } else {
-    // limit metric (sugar): calm until close to/over the limit, then shifts red and grows
-    const dangerT = Math.max(pct - 0.7, 0) / 0.3 + overPct; // starts building at 70%, intensifies past 100%
-    const clamped = Math.min(dangerT, 1.5);
-    numberColor = mixColor("#1c1c1e", "#c0392b", Math.min(clamped, 1));
-    fontSize = 12 + Math.min(clamped, 1) * 3;
+    const dangerT = Math.max(pct - 0.7, 0) / 0.3 + overPct;
+    numberColor = mixColor("#1c1c1e", "#c0392b", Math.min(dangerT, 1));
   }
 
   return (
-    <div style={{ textAlign: "center" }}>
+    <div style={{ textAlign: "center", minHeight: "108px" }}>
       <svg width="64" height="64" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="26" fill="none" stroke="#eee" strokeWidth="6" />
         <circle
@@ -39,8 +33,8 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
         <text x="32" y="37" textAnchor="middle" fontSize="18">{icon}</text>
       </svg>
       <p style={{
-        fontSize: `${fontSize}px`, fontWeight: 600, margin: "4px 0 0",
-        color: numberColor, transition: "color 0.3s ease, font-size 0.3s ease"
+        fontSize: "12px", fontWeight: 600, margin: "4px 0 0",
+        color: numberColor, transition: "color 0.3s ease"
       }}>
         {Math.round(value * 10) / 10}/{target}{unit}
       </p>

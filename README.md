@@ -74,6 +74,36 @@ database structure need to match, and only running the code update isn't enough 
 - Added `protein_target_g` to profiles (default 46g women / 56g men, set at onboarding).
 - Run `supabase/migration_002_protein_strength.sql` once if updating an already-live database.
 
+## Batch 2 — bug fixes and missing functionality
+- Fixed: Movement and Home Cooked vs Eaten Out were inserting a new row on every tap instead of
+  replacing today's answer — this caused the movement ring to appear frozen and the weekly
+  home-cooked percentage to drift. Both now update today's single entry in place, and tapping
+  the same value again clears it (acts as undo).
+- Added: a "Today's entries" list at the bottom of the dashboard, expandable, with a Remove
+  button on every single logged item — covers accidental taps and testing.
+- Fixed: the ring number's font-size was growing as it approached target, which pushed the
+  surrounding card taller and shifted layout. Removed the size growth, kept only the color
+  shift, and gave each ring row a fixed minimum height so nothing moves around anymore.
+- Fixed: strength icon wasn't rendering (relied on an external icon font) — switched to an
+  emoji, consistent with how every other tracker icon works, no font-loading dependency.
+- Added: tapping outside any bottom-sheet popup now closes it, not just the Close button.
+- Added: a settings (gear) icon on the dashboard — lets a signed-in user change their
+  guideline group, meal times, reset all logged data, or sign out. For guests, it shows a note
+  that settings save to this device only until they save their progress.
+- No new schema migration needed for this batch, only application code changed.
+
+## Batch 3 — rolling 7-day timeline
+- Added a 7-dot timeline under the header: today anchored at the right edge, six prior days
+  trailing left. Filled dot = something was logged that day, hollow = nothing was.
+- Tapping a past dot opens a read-only snapshot of that day (all six trackers) — consistent
+  with the existing 24-hour lock rule, this is a look-back, not an edit screen.
+- Replaced calendar-week math (Sunday-to-Saturday) with a genuine rolling 7-day window
+  everywhere — movement days, strength count, and home-cooked % all now reflect "the last 7
+  days" ending today, not a fixed calendar week. This was a deliberate choice to avoid the
+  "I'll catch up on Sunday" mental loophole a fixed week can create.
+- New files: `components/Timeline.js`, `components/DaySnapshot.js`.
+- No schema migration needed — this batch only changes how existing data is queried and displayed.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.

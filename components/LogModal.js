@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { addGuestLog } from "../lib/guestStore";
+import { addGuestLog, upsertGuestDailyLog } from "../lib/guestStore";
 import trackers from "../data/trackers.json";
 
 const MULTIPLIERS = [1, 2, 3];
@@ -15,15 +15,35 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   const [customGrams, setCustomGrams] = useState("");
   const [saveLabel, setSaveLabel] = useState("");
   const [savedQuickAdds, setSavedQuickAdds] = useState([]);
+  const [todayValue, setTodayValue] = useState(null); // for one-per-day trackers (movement, meal_source)
 
   useEffect(() => {
-    if (!userId) return; // saved quick-adds are an account feature for now
-    supabase
-      .from("saved_quick_adds")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("tracker", tracker)
-      .then(({ data }) => setSavedQuickAdds(data || []));
+    if (userId) {
+      if (!userId) return;
+      supabase
+        .from("saved_quick_adds")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("tracker", tracker)
+        .then(({ data }) => setSavedQuickAdds(data || []));
+    }
+  }, [tracker, userId]);
+
+  // Load today's existing value for one-per-day trackers, so the current pick is highlighted.
+  useEffect(() => {
+    if (tracker !== "movement" && tracker !== "meal_source") return;
+    const loadToday = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      if (userId) {
+        const { data } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", today).maybeSingle();
+        setTodayValue(data);
+      } else {
+        const { getGuestLogs } = await import("../lib/guestStore");
+        const logs = getGuestLogs();
+        setTodayValue(logs.find((l) => l.tracker === tracker && l.log_date === today) || null);
+      }
+    };
+    loadToday();
   }, [tracker, userId]);
 
   const insertLog = async (row) => {
@@ -31,6 +51,27 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
       await supabase.from("logs").insert({ user_id: userId, tracker, ...row });
     } else {
       addGuestLog({ tracker, ...row });
+    }
+    onLogged();
+    onClose();
+  };
+
+  // For movement/meal_source: replace today's entry, or clear it if tapping the same value again.
+  const upsertDaily = async (fields, matchField) => {
+    if (userId) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: existing } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", today).maybeSingle();
+      if (existing) {
+        if (existing[matchField] === fields[matchField]) {
+          await supabase.from("logs").delete().eq("id", existing.id);
+        } else {
+          await supabase.from("logs").update(fields).eq("id", existing.id);
+        }
+      } else {
+        await supabase.from("logs").insert({ user_id: userId, tracker, ...fields });
+      }
+    } else {
+      upsertGuestDailyLog(tracker, fields, matchField);
     }
     onLogged();
     onClose();
@@ -79,19 +120,24 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   if (tracker === "movement") {
     return (
       <Sheet onClose={onClose} title="Log today's movement">
-        {trackers.movement.tiers.map((t) => (
-          <button
-            key={t.value}
-            className="card"
-            style={{ width: "100%", textAlign: "left", marginBottom: "8px", border: "none" }}
-            onClick={() => insertLog({ movement_tier: t.value })}
-          >
-            <p style={{ fontWeight: 600, margin: 0 }}>
-              {t.label} {t.doubleCredit && <span style={{ fontSize: "11px", color: "var(--atm-purple)" }}>2x credit</span>}
-            </p>
-            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0" }}>{t.description}</p>
-          </button>
-        ))}
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
+        {trackers.movement.tiers.map((t) => {
+          const isSelected = todayValue?.movement_tier === t.value;
+          return (
+            <button
+              key={t.value}
+              className="card"
+              style={{ width: "100%", textAlign: "left", marginBottom: "8px", border: isSelected ? "2px solid var(--atm-purple)" : "0.5px solid var(--border)" }}
+              onClick={() => upsertDaily({ movement_tier: t.value }, "movement_tier")}
+            >
+              <p style={{ fontWeight: 600, margin: 0 }}>
+                {t.label} {t.doubleCredit && <span style={{ fontSize: "11px", color: "var(--atm-purple)" }}>2x credit</span>}
+                {isSelected && <span style={{ float: "right", color: "var(--atm-purple)" }}>✓</span>}
+              </p>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0" }}>{t.description}</p>
+            </button>
+          );
+        })}
       </Sheet>
     );
   }
@@ -115,12 +161,21 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   if (tracker === "meal_source") {
     return (
       <Sheet onClose={onClose} title="Today, mostly...">
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
         <Grid>
-          {trackers.meal_source.options.map((o) => (
-            <OptionBtn key={o.value} onClick={() => insertLog({ meal_source: o.value })}>
-              {o.label}
-            </OptionBtn>
-          ))}
+          {trackers.meal_source.options.map((o) => {
+            const isSelected = todayValue?.meal_source === o.value;
+            return (
+              <button
+                key={o.value}
+                onClick={() => upsertDaily({ meal_source: o.value }, "meal_source")}
+                className="btn-secondary"
+                style={{ textAlign: "left", border: isSelected ? "2px solid var(--atm-purple)" : "0.5px solid var(--border)" }}
+              >
+                {o.label} {isSelected && "✓"}
+              </button>
+            );
+          })}
         </Grid>
       </Sheet>
     );
@@ -245,8 +300,14 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
 
 function Sheet({ title, children, onClose }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", zIndex: 50 }}>
-      <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: "1.25rem", width: "100%", maxHeight: "80vh", overflowY: "auto" }}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", zIndex: 50 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "white", borderRadius: "20px 20px 0 0", padding: "1.25rem", width: "100%", maxHeight: "80vh", overflowY: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button onClick={onClose} className="btn-secondary" style={{ padding: "4px 12px" }}>Close</button>
