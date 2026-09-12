@@ -12,6 +12,7 @@ const TARGETS = {
 export default function Onboarding() {
   const router = useRouter();
   const [group, setGroup] = useState("women");
+  const [showBreakfast, setShowBreakfast] = useState(false);
   const [breakfast, setBreakfast] = useState("08:00");
   const [lunch, setLunch] = useState("12:30");
   const [dinner, setDinner] = useState("18:30");
@@ -22,7 +23,7 @@ export default function Onboarding() {
     const t = TARGETS[group];
     const profile = {
       target_group: group,
-      breakfast_time: breakfast,
+      breakfast_time: showBreakfast ? breakfast : null,
       lunch_time: lunch,
       dinner_time: dinner,
       water_target_oz: t.water,
@@ -84,7 +85,6 @@ export default function Onboarding() {
           Used to time a single gentle reminder each day, not multiple interruptions.
         </p>
         {[
-          ["Breakfast", breakfast, setBreakfast],
           ["Lunch", lunch, setLunch],
           ["Dinner", dinner, setDinner],
         ].map(([label, value, setter]) => (
@@ -93,6 +93,17 @@ export default function Onboarding() {
             <input type="time" value={value} onChange={(e) => setter(e.target.value)} />
           </div>
         ))}
+
+        {showBreakfast ? (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <label style={{ fontSize: "14px" }}>Breakfast</label>
+            <input type="time" value={breakfast} onChange={(e) => setBreakfast(e.target.value)} />
+          </div>
+        ) : (
+          <button className="btn-secondary" style={{ fontSize: "13px", padding: "6px 12px" }} onClick={() => setShowBreakfast(true)}>
+            + Add breakfast reminder
+          </button>
+        )}
       </div>
 
       <button className="btn-primary" style={{ width: "100%" }} disabled={saving} onClick={finish}>

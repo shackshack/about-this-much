@@ -1,64 +1,85 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { addGuestLog, upsertGuestDailyLog } from "../lib/guestStore";
+import { addGuestLog, upsertGuestDailyLog, deleteGuestLog, getGuestLogs } from "../lib/guestStore";
 import trackers from "../data/trackers.json";
 
-const MULTIPLIERS = [1, 2, 3];
+const SIZES = [
+  { label: "Small", scalar: 0.7 },
+  { label: "Typical", scalar: 1 },
+  { label: "Large", scalar: 1.3 },
+];
+const QUANTITIES = [1, 2, 3];
+
+const isSizeVariant = (unit) => /\b(small|medium|large)\b/i.test(unit || "");
 
 // userId is null for guests — in that case everything writes to local storage instead.
-export default function LogModal({ tracker, userId, onClose, onLogged }) {
+// targetDate lets this same modal log for "today" (default) or a specific past date
+// (used when backdating within the 24-hour-after edit window).
+export default function LogModal({ tracker, userId, onClose, onLogged, targetDate }) {
+  const dateStr = targetDate || new Date().toISOString().slice(0, 10);
+
   const [category, setCategory] = useState(null);
   const [item, setItem] = useState(null);
-  const [multiplier, setMultiplier] = useState(1);
-  const [fraction, setFraction] = useState(1);
   const [customGrams, setCustomGrams] = useState("");
   const [saveLabel, setSaveLabel] = useState("");
   const [savedQuickAdds, setSavedQuickAdds] = useState([]);
   const [todayValue, setTodayValue] = useState(null); // for one-per-day trackers (movement, meal_source)
+  const [dayEntries, setDayEntries] = useState([]); // this tracker's entries for dateStr, for inline remove
+
+  const refreshDayEntries = async () => {
+    if (userId) {
+      const { data } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", dateStr);
+      setDayEntries(data || []);
+    } else {
+      setDayEntries(getGuestLogs().filter((l) => l.tracker === tracker && l.log_date === dateStr));
+    }
+  };
 
   useEffect(() => {
-    if (!userId) return; // saved quick-adds are an account feature for now
-    supabase
-      .from("saved_quick_adds")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("tracker", tracker)
+    if (!userId) return;
+    supabase.from("saved_quick_adds").select("*").eq("user_id", userId).eq("tracker", tracker)
       .then(({ data }) => setSavedQuickAdds(data || []));
   }, [tracker, userId]);
 
-  // Load today's existing value for one-per-day trackers, so the current pick is highlighted.
+  useEffect(() => { refreshDayEntries(); }, [tracker, userId, dateStr]);
+
   useEffect(() => {
     if (tracker !== "movement" && tracker !== "meal_source") return;
-    const loadToday = async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      if (userId) {
-        const { data } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", today).maybeSingle();
-        setTodayValue(data);
-      } else {
-        const { getGuestLogs } = await import("../lib/guestStore");
-        const logs = getGuestLogs();
-        setTodayValue(logs.find((l) => l.tracker === tracker && l.log_date === today) || null);
-      }
-    };
-    loadToday();
-  }, [tracker, userId]);
-
-  const insertLog = async (row) => {
     if (userId) {
-      await supabase.from("logs").insert({ user_id: userId, tracker, ...row });
+      supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", dateStr).maybeSingle()
+        .then(({ data }) => setTodayValue(data));
     } else {
-      addGuestLog({ tracker, ...row });
+      setTodayValue(getGuestLogs().find((l) => l.tracker === tracker && l.log_date === dateStr) || null);
+    }
+  }, [tracker, userId, dateStr]);
+
+  // Logs an entry and KEEPS the modal open, so tapping the same item again stacks another one.
+  const logEntry = async (row) => {
+    if (userId) {
+      await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...row });
+    } else {
+      addGuestLog({ tracker, ...row }, dateStr);
     }
     onLogged();
-    onClose();
+    refreshDayEntries();
   };
 
-  // For movement/meal_source: replace today's entry, or clear it if tapping the same value again.
+  const removeEntry = async (log) => {
+    if (userId) {
+      await supabase.from("logs").delete().eq("id", log.id);
+    } else {
+      deleteGuestLog(log.id);
+    }
+    onLogged();
+    refreshDayEntries();
+    if (tracker === "movement" || tracker === "meal_source") setTodayValue(null);
+  };
+
+  // For movement/meal_source: replace this day's entry, or clear it if tapping the same value again.
   const upsertDaily = async (fields, matchField) => {
     if (userId) {
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: existing } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", today).maybeSingle();
+      const { data: existing } = await supabase.from("logs").select("*").eq("user_id", userId).eq("tracker", tracker).eq("log_date", dateStr).maybeSingle();
       if (existing) {
         if (existing[matchField] === fields[matchField]) {
           await supabase.from("logs").delete().eq("id", existing.id);
@@ -66,19 +87,32 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
           await supabase.from("logs").update(fields).eq("id", existing.id);
         }
       } else {
-        await supabase.from("logs").insert({ user_id: userId, tracker, ...fields });
+        await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...fields });
       }
     } else {
-      upsertGuestDailyLog(tracker, fields, matchField);
+      upsertGuestDailyLog(tracker, fields, matchField, dateStr);
     }
     onLogged();
     onClose();
   };
 
+  const DayEntriesList = ({ describe }) =>
+    dayEntries.length > 0 && (
+      <div style={{ marginBottom: "12px" }}>
+        {dayEntries.map((l) => (
+          <div key={l.id} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", marginBottom: "4px" }}>
+            <span style={{ fontSize: "12px" }}>{describe(l)}</span>
+            <button onClick={() => removeEntry(l)} className="btn-secondary" style={{ padding: "2px 8px", fontSize: "11px" }}>Remove</button>
+          </div>
+        ))}
+      </div>
+    );
+
   // ---- WATER ----
   if (tracker === "water") {
     return (
       <Sheet onClose={onClose} title="Log water">
+        <DayEntriesList describe={(l) => `${l.item_name}${l.quantity !== 1 ? ` (${Math.round(l.quantity * 100)}%)` : ""} — ${l.water_oz}oz`} />
         {!category ? (
           <Grid>
             {trackers.water.containers.map((c) => (
@@ -94,15 +128,13 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
               {trackers.water.fractions.map((f) => (
                 <OptionBtn
                   key={f}
-                  onClick={() =>
-                    insertLog({
-                      category: "container",
-                      item_name: category.label,
-                      unit: `${category.oz}oz`,
-                      quantity: f,
-                      water_oz: Math.round(category.oz * f * 10) / 10,
-                    })
-                  }
+                  onClick={() => {
+                    logEntry({
+                      category: "container", item_name: category.label, unit: `${category.oz}oz`,
+                      quantity: f, water_oz: Math.round(category.oz * f * 10) / 10,
+                    });
+                    setCategory(null);
+                  }}
                 >
                   {f === 1 ? "Full" : `${f * 100}%`}
                 </OptionBtn>
@@ -117,7 +149,7 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   // ---- MOVEMENT ----
   if (tracker === "movement") {
     return (
-      <Sheet onClose={onClose} title="Log today's movement">
+      <Sheet onClose={onClose} title="Log movement">
         <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
         {trackers.movement.tiers.map((t) => {
           const isSelected = todayValue?.movement_tier === t.value;
@@ -144,12 +176,9 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   if (tracker === "strength") {
     return (
       <Sheet onClose={onClose} title="Log a strength session">
-        <button
-          className="btn-primary"
-          style={{ width: "100%" }}
-          onClick={() => insertLog({ item_name: "Strength session" })}
-        >
-          Log today's strength session
+        <DayEntriesList describe={() => "Strength session"} />
+        <button className="btn-primary" style={{ width: "100%" }} onClick={() => logEntry({ item_name: "Strength session" })}>
+          Log a strength session for this day
         </button>
       </Sheet>
     );
@@ -158,7 +187,7 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
   // ---- MEAL SOURCE ----
   if (tracker === "meal_source") {
     return (
-      <Sheet onClose={onClose} title="Today, mostly...">
+      <Sheet onClose={onClose} title="This day, mostly...">
         <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap your current selection again to clear it.</p>
         <Grid>
           {trackers.meal_source.options.map((o) => {
@@ -179,26 +208,30 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
     );
   }
 
-  // ---- SUGAR / FIBER / PROTEIN (category > item > multiplier) ----
+  // ---- SUGAR / FIBER / PROTEIN (category > item > size or quantity) ----
   const data = trackers[tracker];
   const categories = Object.keys(data);
 
-  const logItem = (it) => {
-    const row = { category: category, item_name: it.item, unit: it.unit, quantity: multiplier };
+  const buildRow = (it, scalar) => {
+    const row = { category, item_name: it.item, unit: it.unit, quantity: scalar };
     if (tracker === "sugar") {
-      row.sugar_g = Math.round(it.g * multiplier * 10) / 10;
-      if (it.fiberG) row.fiber_g = Math.round(it.fiberG * multiplier * 10) / 10;
-      if (it.oz) row.water_oz = Math.round(it.oz * multiplier * 10) / 10;
+      row.sugar_g = Math.round(it.g * scalar * 10) / 10;
+      if (it.fiberG) row.fiber_g = Math.round(it.fiberG * scalar * 10) / 10;
+      if (it.oz) row.water_oz = Math.round(it.oz * scalar * 10) / 10;
     }
     if (tracker === "fiber") {
-      const g = it.skinToggle ? it.g : it.g; // skin-on default, matches spec
-      row.fiber_g = Math.round(g * multiplier * 10) / 10;
-      if (it.proteinG) row.protein_g = Math.round(it.proteinG * multiplier * 10) / 10;
+      row.fiber_g = Math.round(it.g * scalar * 10) / 10;
+      if (it.proteinG) row.protein_g = Math.round(it.proteinG * scalar * 10) / 10;
     }
     if (tracker === "protein") {
-      row.protein_g = Math.round(it.g * multiplier * 10) / 10;
+      row.protein_g = Math.round(it.g * scalar * 10) / 10;
     }
-    insertLog(row);
+    return row;
+  };
+
+  const describeItemLog = (l) => {
+    const grams = l.sugar_g || l.fiber_g || l.protein_g;
+    return `${l.item_name}${grams ? ` — ${grams}g` : ""}`;
   };
 
   const saveQuickAdd = async () => {
@@ -207,12 +240,13 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
     const row = { user_id: userId, tracker, label: saveLabel };
     row[`${tracker}_g`] = val;
     await supabase.from("saved_quick_adds").insert(row);
-    setSaveLabel("");
-    setCustomGrams("");
+    setSaveLabel(""); setCustomGrams("");
   };
 
   return (
     <Sheet onClose={onClose} title={`Log ${tracker}`}>
+      <DayEntriesList describe={describeItemLog} />
+
       {savedQuickAdds.length > 0 && !category && (
         <>
           <p style={{ fontWeight: 600, marginBottom: "8px" }}>Your saved items</p>
@@ -223,7 +257,7 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
                 onClick={() => {
                   const row = { category: "custom", item_name: q.label, quantity: 1 };
                   row[`${tracker}_g`] = q[`${tracker}_g`];
-                  insertLog(row);
+                  logEntry(row);
                 }}
               >
                 {q.label}
@@ -254,7 +288,8 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
                 if (!customGrams) return;
                 const row = { category: "custom", item_name: "Custom entry", quantity: 1 };
                 row[`${tracker}_g`] = parseFloat(customGrams);
-                insertLog(row);
+                logEntry(row);
+                setCustomGrams("");
               }}
             >
               Log
@@ -273,20 +308,43 @@ export default function LogModal({ tracker, userId, onClose, onLogged }) {
         </>
       ) : !item ? (
         <>
-          <p style={{ fontWeight: 600, marginBottom: "8px" }}>{category}</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{category}</p>
+            <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setCategory(null)}>Back</button>
+          </div>
           <Grid>
             {data[category].map((it) => (
               <OptionBtn key={it.item} onClick={() => setItem(it)}>{it.item}</OptionBtn>
             ))}
           </Grid>
         </>
+      ) : isSizeVariant(item.unit) ? (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{item.item} — what size?</p>
+            <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setItem(null)}>Back</button>
+          </div>
+          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again to add another.</p>
+          <Grid>
+            {SIZES.map((s) => (
+              <OptionBtn key={s.label} onClick={() => logEntry(buildRow(item, s.scalar))}>
+                {s.label}
+              </OptionBtn>
+            ))}
+          </Grid>
+        </>
       ) : (
         <>
-          <p style={{ fontWeight: 600, marginBottom: "8px" }}>{item.item} — how much?</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{item.item} — how much?</p>
+            <button className="btn-secondary" style={{ padding: "2px 10px", fontSize: "12px" }} onClick={() => setItem(null)}>Back</button>
+          </div>
+          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>Tap again to add another.</p>
           <Grid>
-            {MULTIPLIERS.map((m) => (
-              <OptionBtn key={m} onClick={() => { setMultiplier(m); logItem(item); }}>
-                {m}x {item.unit}
+            {QUANTITIES.map((q) => (
+              <OptionBtn key={q} onClick={() => logEntry(buildRow(item, q))}>
+                <span style={{ fontWeight: 700 }}>{q}</span>{" "}
+                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>× {item.unit}</span>
               </OptionBtn>
             ))}
           </Grid>

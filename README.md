@@ -104,6 +104,28 @@ database structure need to match, and only running the code update isn't enough 
 - New files: `components/Timeline.js`, `components/DaySnapshot.js`.
 - No schema migration needed — this batch only changes how existing data is queried and displayed.
 
+## Batch 4 — logging clarity, inline undo, backdating, meal-time defaults
+- Fixed: item logging was showing confusing labels like "1x medium" / "2x medium." Produce-type
+  items (anything with "small/medium/large" in the unit) now show a Small/Typical/Large size
+  picker instead. Everything else shows a plain quantity picker ("1 / 2 / 3" with the unit shown
+  underneath, no "x" symbol). Tapping any option logs immediately and the sheet stays open, so
+  tapping again adds another entry — no more needing to specify a count upfront.
+- Added: every log sheet now shows that tracker's entries for the day at the top, each with an
+  inline Remove button — undo is available right where you're already logging, not just in the
+  separate "Today's entries" list on the dashboard.
+- Added: backdating within the 24-hour edit window. Yesterday's dot on the timeline now opens an
+  editable view (tap any metric to add/adjust), matching the original 24-hours-after-the-day-ends
+  rule. Two or more days back is still locked/read-only, as before.
+- Changed: onboarding and Settings now default to Lunch + Dinner only, with a "+ Add breakfast
+  reminder" link to opt in. Reasoning: mornings are rushed, easier to add than to ask everyone
+  to fill out a field most people will leave at a default guess.
+- Added: after a guest saves settings changes, the "save your progress" email prompt now appears
+  inline in the Settings panel itself, not only on the dashboard.
+- Under the hood: `log_date` is now always explicitly set on every insert (guest and Supabase)
+  instead of relying on the database's default, which is what makes backdating to yesterday work
+  correctly — it wasn't safe to add this without that change.
+- No schema migration needed — this batch only changes application code and how dates are set on new rows.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.

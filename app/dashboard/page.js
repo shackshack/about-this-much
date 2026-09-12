@@ -24,6 +24,9 @@ export default function Dashboard() {
   const [viewingDate, setViewingDate] = useState(null); // set when a past dot is tapped
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
   const earliestStr = getLast7Dates()[0];
 
   const load = async () => {
@@ -225,7 +228,10 @@ export default function Dashboard() {
           dateStr={viewingDate}
           logs={rangeLogs.filter((l) => l.log_date === viewingDate)}
           profile={profile}
+          userId={userId}
+          editable={viewingDate === yesterdayStr}
           onClose={() => setViewingDate(null)}
+          onLogged={load}
         />
       )}
     </div>
