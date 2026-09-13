@@ -9,6 +9,7 @@ import SaveProgressBanner from "../../components/SaveProgressBanner";
 import SettingsPanel from "../../components/SettingsPanel";
 import Timeline, { getLast7Dates } from "../../components/Timeline";
 import DaySnapshot from "../../components/DaySnapshot";
+import SearchBar from "../../components/SearchBar";
 import trackers from "../../data/trackers.json";
 
 const RING_ROW_STYLE = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "1rem", alignItems: "start" };
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [rangeLogs, setRangeLogs] = useState([]); // last 7 days, all trackers
   const [activeTracker, setActiveTracker] = useState(null);
+  const [searchJump, setSearchJump] = useState(null); // { tracker, category, item } from search selection
   const [showSettings, setShowSettings] = useState(false);
   const [showTodayList, setShowTodayList] = useState(false);
   const [viewingDate, setViewingDate] = useState(null); // set when a past dot is tapped
@@ -119,7 +121,7 @@ export default function Dashboard() {
           <MetricRing label="Fiber" value={fiber} target={profile.fiber_target_g} unit="g" baseColor="#FFC300" icon="🌾" direction="goal" />
         </button>
         <button onClick={() => setActiveTracker("protein")} style={{ border: "none", background: "none" }}>
-          <MetricRing label="Protein" value={protein} target={profile.protein_target_g || 46} unit="g" baseColor="#6A0DAD" icon="🍗" direction="goal" />
+          <MetricRing label="Protein" value={protein} target={profile.protein_target_g || 60} unit="g" baseColor="#6A0DAD" icon="🍗" direction="goal" />
         </button>
         <button onClick={() => setActiveTracker("water")} style={{ border: "none", background: "none" }}>
           <MetricRing label="Water" value={water} target={profile.water_target_oz} unit="oz" baseColor="#00CFFF" icon="💧" direction="goal" />
@@ -154,6 +156,8 @@ export default function Dashboard() {
           <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>Strength</p>
         </button>
       </div>
+
+      <SearchBar onSelect={(r) => { setSearchJump(r); setActiveTracker(r.tracker); }} />
 
       <button className="card" style={{ width: "100%", textAlign: "left", marginBottom: "1rem", border: "none" }} onClick={() => setActiveTracker("movement")}>
         <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>
@@ -196,8 +200,10 @@ export default function Dashboard() {
         <LogModal
           tracker={activeTracker}
           userId={userId}
-          onClose={() => setActiveTracker(null)}
+          onClose={() => { setActiveTracker(null); setSearchJump(null); }}
           onLogged={load}
+          initialCategory={searchJump?.tracker === activeTracker ? searchJump.category : undefined}
+          initialItem={searchJump?.tracker === activeTracker ? searchJump.item : undefined}
         />
       )}
 

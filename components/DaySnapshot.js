@@ -46,7 +46,7 @@ export default function DaySnapshot({ dateStr, logs, profile, userId, onClose, e
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "1rem" }}>
               {wrap("fiber", <MetricRing label="Fiber" value={sum("fiber_g")} target={profile.fiber_target_g} unit="g" baseColor="#FFC300" icon="🌾" direction="goal" />)}
-              {wrap("protein", <MetricRing label="Protein" value={sum("protein_g")} target={profile.protein_target_g || 46} unit="g" baseColor="#6A0DAD" icon="🍗" direction="goal" />)}
+              {wrap("protein", <MetricRing label="Protein" value={sum("protein_g")} target={profile.protein_target_g || 60} unit="g" baseColor="#6A0DAD" icon="🍗" direction="goal" />)}
               {wrap("water", <MetricRing label="Water" value={sum("water_oz")} target={profile.water_target_oz} unit="oz" baseColor="#00CFFF" icon="💧" direction="goal" />)}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "1rem" }}>

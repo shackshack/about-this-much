@@ -20,6 +20,7 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
 
   const overAmount = Math.round((value - target) * 10) / 10;
   const isOver = overAmount > 0;
+  const isFarOver = value >= target * 2; // invisible cap — stop showing a climbing number past this point
 
   return (
     <div style={{ textAlign: "center", minHeight: "108px" }}>
@@ -35,16 +36,27 @@ export default function MetricRing({ label, value, target, unit, baseColor, icon
         />
         <text x="32" y="37" textAnchor="middle" fontSize="18">{icon}</text>
       </svg>
-      <p style={{
-        fontSize: "12px", fontWeight: 600, margin: "4px 0 0",
-        color: numberColor, transition: "color 0.3s ease"
-      }}>
-        {Math.round(value * 10) / 10}/{target}{unit}
-      </p>
-      {isOver && (
-        <p style={{ fontSize: "10px", fontWeight: 700, margin: "1px 0 0", color: direction === "goal" ? "#1a9e5c" : "#c0392b" }}>
-          {direction === "goal" ? `+${overAmount}${unit}` : `+${overAmount}${unit} over`}
+      {isFarOver ? (
+        <p style={{
+          fontSize: "11px", fontWeight: 700, margin: "4px 0 0",
+          color: direction === "goal" ? "#1a9e5c" : "#c0392b"
+        }}>
+          {direction === "goal" ? "✓ More than enough today" : "Well past today's amount"}
         </p>
+      ) : (
+        <>
+          <p style={{
+            fontSize: "12px", fontWeight: 600, margin: "4px 0 0",
+            color: numberColor, transition: "color 0.3s ease"
+          }}>
+            {Math.round(value * 10) / 10}/{target}{unit}
+          </p>
+          {isOver && (
+            <p style={{ fontSize: "10px", fontWeight: 700, margin: "1px 0 0", color: direction === "goal" ? "#1a9e5c" : "#c0392b" }}>
+              {direction === "goal" ? `+${overAmount}${unit}` : `+${overAmount}${unit} over`}
+            </p>
+          )}
+        </>
       )}
       <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>{label}</p>
     </div>

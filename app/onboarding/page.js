@@ -5,8 +5,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { setGuestProfile } from "../../lib/guestStore";
 
 const TARGETS = {
-  women: { water: 73, sugar: 25, fiber: 25, protein: 46 },
-  men: { water: 100, sugar: 36, fiber: 38, protein: 56 },
+  women: { water: 73, sugar: 25, fiber: 25, protein: 60 },
+  men: { water: 100, sugar: 36, fiber: 38, protein: 75 },
 };
 
 export default function Onboarding() {
@@ -45,6 +45,8 @@ export default function Onboarding() {
 
   return (
     <div className="container">
+      <h1 style={{ color: "var(--atm-purple)", fontSize: "24px", margin: "0 0 2px" }}>About This Much</h1>
+      <p style={{ color: "var(--text-muted)", fontSize: "14px", margin: "0 0 20px", fontWeight: 600 }}>Healthy Habits</p>
       <h2>Let's set your starting point</h2>
       <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "-8px", marginBottom: "1rem" }}>
         No account needed to start — you can save your progress later if you want to.

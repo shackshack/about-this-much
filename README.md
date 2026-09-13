@@ -165,6 +165,34 @@ database structure need to match, and only running the code update isn't enough 
   something the UI should encourage or even track distinctly.
 - No schema migration needed — this batch is entirely application code and UI/layout.
 
+## Batch 7 — search bar, protein bump, water fix, invisible cap, rename
+- Added: a search bar below the two ring rows on the dashboard. Typing any food (e.g.
+  "cauliflower") searches across fiber, sugar, and protein at once and jumps straight to that
+  item's quantity screen, skipping the category → item browse entirely. New file:
+  `components/SearchBar.js`.
+- Fixed a real bug: logging a water container as full, then using "not full" to log a partial
+  amount, was stacking a SECOND entry on top of the first instead of adjusting it — meaning a
+  "full cup then 50%" tap sequence was silently logging 1.5 cups. The partial-amount action now
+  edits the exact entry that was just created instead of adding a new one.
+- Changed the partial-amount copy from "Not full? Log a partial amount" to "Didn't finish it?"
+  with a small rotating chevron instead of underlined link-style text, so it reads as a
+  disclosure toggle, not a link to somewhere else.
+- Added an "invisible cap" to every ring, not just Movement: once a value passes double its
+  target, the ring stops showing a climbing exact number and switches to a fixed message —
+  "✓ More than enough today" (green) for goal metrics, "Well past today's amount" (red) for
+  sugar. This keeps Movement specifically from turning into "tap as many times as possible for
+  a bigger number," and keeps every other metric from displaying an alarming or gimmicky huge
+  number if someone logs a lot in one sitting.
+- Bumped default protein targets from 46g/56g (the literal RDA minimum, defined specifically as
+  the floor to avoid deficiency) to 60g/75g, closer to general moderate-adult guidance. Added
+  `supabase/migration_003_protein_bump.sql` to update existing test accounts that are still on
+  the old default (skips anyone who already customized their own number).
+- Renamed: the app is now "About This Much: Healthy Habits" in the browser tab/title, with
+  "About This Much" as the large heading and "Healthy Habits" as a subtitle on the onboarding
+  screen. The full name signals consistency/habit-building rather than single-ingredient
+  tracking, while keeping the existing brand name and equity intact.
+- Run `supabase/migration_003_protein_bump.sql` once for existing accounts. No other schema changes.
+
 ## What's intentionally not built yet (by design, from our planning)
 - Gamification / avatar / rewards layer — deferred, but every log is already timestamped and
   raw in the `logs` table, so streaks and lifetime stats can be built later without losing history.

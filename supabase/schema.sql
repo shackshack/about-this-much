@@ -11,7 +11,7 @@ create table if not exists profiles (
   water_target_oz numeric default 73,
   sugar_target_g numeric default 25,
   fiber_target_g numeric default 25,
-  protein_target_g numeric default 46,
+  protein_target_g numeric default 60,
   newsletter_optin boolean default false,
   created_at timestamp with time zone default now()
 );

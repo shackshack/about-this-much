@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "About This Much",
+  title: "About This Much: Healthy Habits",
   description: "Six habits, no math required.",
 };
 

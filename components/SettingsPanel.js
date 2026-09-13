@@ -5,8 +5,8 @@ import { getGuestProfile, setGuestProfile } from "../lib/guestStore";
 import SaveProgressBanner from "./SaveProgressBanner";
 
 const TARGETS = {
-  women: { water: 73, sugar: 25, fiber: 25, protein: 46 },
-  men: { water: 100, sugar: 36, fiber: 38, protein: 56 },
+  women: { water: 73, sugar: 25, fiber: 25, protein: 60 },
+  men: { water: 100, sugar: 36, fiber: 38, protein: 75 },
 };
 
 export default function SettingsPanel({ userId, profile, onClose, onUpdated }) {

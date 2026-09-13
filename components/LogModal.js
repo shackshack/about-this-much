@@ -1,24 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { addGuestLog, upsertGuestDailyLog, deleteGuestLog, getGuestLogs } from "../lib/guestStore";
+import { addGuestLog, upsertGuestDailyLog, deleteGuestLog, updateGuestLog, getGuestLogs } from "../lib/guestStore";
 import trackers from "../data/trackers.json";
 
 const QUANTITIES = [1, 2, 3];
 
 // userId is null for guests — everything writes to local storage instead.
 // targetDate lets this modal log for "today" (default) or a specific past date (backdating yesterday).
-export default function LogModal({ tracker, userId, onClose, onLogged, targetDate }) {
+// initialCategory/initialItem let the search bar jump straight to an item's quantity screen.
+export default function LogModal({ tracker, userId, onClose, onLogged, targetDate, initialCategory, initialItem }) {
   const dateStr = targetDate || new Date().toISOString().slice(0, 10);
 
-  const [category, setCategory] = useState(null);
-  const [item, setItem] = useState(null);
+  const [category, setCategory] = useState(initialCategory || null);
+  const [item, setItem] = useState(initialItem || null);
   const [customGrams, setCustomGrams] = useState("");
   const [saveLabel, setSaveLabel] = useState("");
   const [savedQuickAdds, setSavedQuickAdds] = useState([]);
   const [mealTodayValue, setMealTodayValue] = useState(null);
   const [dayEntries, setDayEntries] = useState([]);
-  const [expandedContainer, setExpandedContainer] = useState(null); // water: which container's partial-amount picker is open
+  const [expandedContainer, setExpandedContainer] = useState(null);
+  const [lastEntryIdByContainer, setLastEntryIdByContainer] = useState({});
 
   const refreshDayEntries = async () => {
     if (userId) {
@@ -47,14 +49,18 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
     }
   }, [tracker, userId, dateStr]);
 
+  // Logs an entry, keeps the modal open, and returns the created row (so callers can adjust it later).
   const logEntry = async (row) => {
+    let created;
     if (userId) {
-      await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...row });
+      const { data } = await supabase.from("logs").insert({ user_id: userId, tracker, log_date: dateStr, ...row }).select().single();
+      created = data;
     } else {
-      addGuestLog({ tracker, ...row }, dateStr);
+      created = addGuestLog({ tracker, ...row }, dateStr);
     }
     onLogged();
     refreshDayEntries();
+    return created;
   };
 
   const removeEntry = async (log) => {
@@ -62,6 +68,16 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
       await supabase.from("logs").delete().eq("id", log.id);
     } else {
       deleteGuestLog(log.id);
+    }
+    onLogged();
+    refreshDayEntries();
+  };
+
+  const updateEntry = async (id, fields) => {
+    if (userId) {
+      await supabase.from("logs").update(fields).eq("id", id);
+    } else {
+      updateGuestLog(id, fields);
     }
     onLogged();
     refreshDayEntries();
@@ -106,40 +122,58 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
       </div>
     );
 
-  // ---- WATER: tap a container = log it full, immediately. Partial amount is an optional expand. ----
+  // ---- WATER: tap a container = log it full immediately. "Didn't finish it?" adjusts that
+  // exact entry down to a partial amount instead of stacking a second entry on top of it. ----
   if (tracker === "water") {
     return (
       <Sheet onClose={onClose} title="Log water">
         <List>
           {trackers.water.containers.map((c) => {
             const isExpanded = expandedContainer === c.label;
+            const count = dayEntries.filter((l) => l.item_name === c.label).length;
             return (
               <div key={c.label}>
                 <TapButton
-                  count={dayEntries.filter((l) => l.item_name === c.label && l.quantity === 1).length}
-                  onTap={() => logEntry({ category: "container", item_name: c.label, unit: `${c.oz}oz`, quantity: 1, water_oz: c.oz })}
-                  onUndo={() => undoOne((l) => l.item_name === c.label && l.quantity === 1)}
+                  count={count}
+                  onTap={async () => {
+                    const entry = await logEntry({ category: "container", item_name: c.label, unit: `${c.oz}oz`, quantity: 1, water_oz: c.oz });
+                    if (entry) setLastEntryIdByContainer((m) => ({ ...m, [c.label]: entry.id }));
+                  }}
+                  onUndo={() => undoOne((l) => l.item_name === c.label)}
                 >
                   {c.label} <span style={{ color: "var(--text-muted)" }}>({c.oz}oz)</span>
                 </TapButton>
                 <button
                   onClick={() => setExpandedContainer(isExpanded ? null : c.label)}
-                  style={{ background: "none", border: "none", padding: "0 0 10px 4px", fontSize: "11px", color: "var(--text-muted)", textDecoration: "underline" }}
+                  style={{ background: "none", border: "none", padding: "2px 0 10px 4px", fontSize: "11px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}
                 >
-                  Not full? Log a partial amount
+                  Didn't finish it? <span style={{ display: "inline-block", transition: "transform 0.15s ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
                 </button>
                 {isExpanded && (
                   <div style={{ paddingLeft: "8px", marginBottom: "8px" }}>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>
+                      Adjusts the {c.label} you just logged — this doesn't add a second entry.
+                    </p>
                     <List>
                       {trackers.water.fractions.filter((f) => f !== 1).map((f) => (
-                        <TapButton
+                        <button
                           key={f}
-                          count={dayEntries.filter((l) => l.item_name === c.label && l.quantity === f).length}
-                          onTap={() => logEntry({ category: "container", item_name: c.label, unit: `${c.oz}oz`, quantity: f, water_oz: Math.round(c.oz * f * 10) / 10 })}
-                          onUndo={() => undoOne((l) => l.item_name === c.label && l.quantity === f)}
+                          className="btn-secondary"
+                          style={{ textAlign: "left" }}
+                          onClick={async () => {
+                            const targetId = lastEntryIdByContainer[c.label];
+                            const newOz = Math.round(c.oz * f * 10) / 10;
+                            if (targetId) {
+                              await updateEntry(targetId, { quantity: f, water_oz: newOz });
+                            } else {
+                              const entry = await logEntry({ category: "container", item_name: c.label, unit: `${c.oz}oz`, quantity: f, water_oz: newOz });
+                              if (entry) setLastEntryIdByContainer((m) => ({ ...m, [c.label]: entry.id }));
+                            }
+                            setExpandedContainer(null);
+                          }}
                         >
                           {f * 100}% <span style={{ color: "var(--text-muted)" }}>({Math.round(c.oz * f)}oz)</span>
-                        </TapButton>
+                        </button>
                       ))}
                     </List>
                   </div>
@@ -175,17 +209,17 @@ export default function LogModal({ tracker, userId, onClose, onLogged, targetDat
     );
   }
 
-  // ---- STRENGTH: one log per day, plain toggle — more sessions isn't the goal, consistency is. ----
+  // ---- STRENGTH: one log per day, plain toggle — consistency is the goal, not volume. ----
   if (tracker === "strength") {
     const logged = dayEntries.length > 0;
     return (
-      <Sheet onClose={onClose} title="Log a strength session">
+      <Sheet onClose={onClose} title="Strength session">
         <button
           className="card"
           style={{ width: "100%", textAlign: "left", border: logged ? "2px solid var(--atm-purple)" : "0.5px solid var(--border)" }}
           onClick={() => (logged ? removeEntry(dayEntries[0]) : logEntry({ item_name: "Strength session" }))}
         >
-          <p style={{ fontWeight: 600, margin: 0 }}>{logged ? "Logged ✓ — tap to undo" : "Log a strength session for this day"}</p>
+          <p style={{ fontWeight: 600, margin: 0 }}>{logged ? "Done for today ✓ — tap to undo" : "Log today's strength session"}</p>
         </button>
       </Sheet>
     );
@@ -369,7 +403,6 @@ function Sheet({ title, children, onClose }) {
   );
 }
 
-// Always a single vertical list, top to bottom — no 2-column wrapping that reads inconsistently.
 function List({ children }) {
   return <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{children}</div>;
 }
@@ -382,8 +415,6 @@ function OptionBtn({ children, onClick }) {
   );
 }
 
-// Main button logs a new entry and shows a purple outline once count > 0, with a small "−"
-// next to it that undoes just the most recent instance of that specific option.
 function TapButton({ count, onTap, onUndo, children }) {
   const logged = count > 0;
   return (
